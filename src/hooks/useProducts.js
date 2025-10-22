@@ -1,68 +1,43 @@
-'use client'
-
-import { useState, useEffect, useRef } from 'react';
-import { api } from '../lib/woocommerce';
+import { useState, useEffect } from 'react';
 
 export function useProducts(page = 1) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasMore, setHasMore] = useState(false);
   const [totalProducts, setTotalProducts] = useState(0);
-  
-  const currentRequest = useRef(null);
 
   useEffect(() => {
     const fetchProducts = async () => {
-      if (currentRequest.current) {
-        currentRequest.current.cancel = true;
-      }
-      
-      const requestId = {};
-      currentRequest.current = requestId;
-
       try {
         setLoading(true);
         setError(null);
-
-        console.log('🔄 Loading products...');
-        const response = await api.getProducts(page);
         
-        if (currentRequest.current !== requestId) {
-          return;
+        const response = await fetch(`/api/products?page=${page}&per_page=12`);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch products: ${response.status}`);
         }
         
-        console.log('✅ Products loaded successfully');
-        if (page === 1) {
-          setProducts(response.products);
-        } else {
-          setProducts(prev => [...prev, ...response.products]);
-        }
+        const productsData = await response.json();
         
-        setHasMore(page < response.totalPages);
-        setTotalProducts(response.totalProducts);
+        setProducts(prevProducts => 
+          page === 1 ? productsData : [...prevProducts, ...productsData]
+        );
+        
+        // Check if there are more products (assuming 12 per page)
+        setHasMore(productsData.length === 12);
+        setTotalProducts(prev => page === 1 ? productsData.length : prev + productsData.length);
+        
       } catch (err) {
-        if (currentRequest.current !== requestId) {
-          return;
-        }
-        
-        console.error('❌ Error loading products:', err.message);
-        if (page === 1) {
-          setError('Failed to load products. Please try again.');
-          setProducts([]);
-        }
+        setError(err.message);
+        console.error('Error fetching products:', err);
       } finally {
-        if (currentRequest.current === requestId) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     };
 
     fetchProducts();
-
-    return () => {
-      currentRequest.current = null;
-    };
   }, [page]);
 
   return { products, loading, error, hasMore, totalProducts };

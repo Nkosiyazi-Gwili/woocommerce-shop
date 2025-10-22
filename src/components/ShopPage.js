@@ -6,6 +6,7 @@ import { useCart } from '../contexts/CartContext';
 import { useRouter } from 'next/navigation';
 import ProductsGrid from './ProductsGrid';
 
+
 export default function ShopPage() {
   const router = useRouter();
   const [page, setPage] = useState(1);
