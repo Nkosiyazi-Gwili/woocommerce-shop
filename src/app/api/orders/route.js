@@ -1,37 +1,40 @@
-// pages/api/products.js
-export default async function handler(req, res) {
-  // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+import { NextResponse } from 'next/server';
 
-  // Handle preflight request
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
+export async function POST(request) {
   try {
-    const { page = 1, per_page = 12 } = req.query;
+    const orderData = await request.json();
     
-    const response = await fetch(
-      `${process.env.WORDPRESS_SITE_URL}/wp-json/wc/v3/products?` + 
-      new URLSearchParams({
-        per_page,
-        page,
-        status: 'publish',
-        consumer_key: process.env.WOOCOMMERCE_CONSUMER_KEY,
-        consumer_secret: process.env.WOOCOMMERCE_CONSUMER_SECRET
-      })
-    );
+    const woocommerceUrl = `${process.env.NEXT_PUBLIC_WOOCOMMERCE_URL}/wp-json/wc/v3/orders`;
+    
+    console.log('🛒 Creating WooCommerce order:', orderData);
+
+    const response = await fetch(woocommerceUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Basic ' + Buffer.from(
+          `${process.env.WOOCOMMERCE_CONSUMER_KEY}:${process.env.WOOCOMMERCE_CONSUMER_SECRET}`
+        ).toString('base64'),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(orderData),
+    });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      console.error('❌ WooCommerce API error:', errorText);
+      throw new Error(`WooCommerce API error: ${response.status}`);
     }
 
-    const products = await response.json();
-    res.status(200).json(products);
+    const order = await response.json();
+    console.log('✅ Order created successfully:', order.id);
+
+    return NextResponse.json(order);
+    
   } catch (error) {
-    console.error('API Error:', error);
-    res.status(500).json({ error: 'Failed to fetch products' });
+    console.error('❌ Order creation error:', error);
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
   }
 }
