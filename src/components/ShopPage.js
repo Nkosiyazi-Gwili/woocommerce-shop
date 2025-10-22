@@ -54,10 +54,10 @@ export default function ShopPage() {
         {/* Header */}
         <div className="flex flex-col lg:flex-row justify-between items-center mb-8 gap-4">
           <div className="text-center lg:text-left">
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">All Products</h1>
+            {/* <h1 className="text-4xl font-bold text-gray-800 mb-2">All Products</h1>
             <p className="text-xl text-gray-600 max-w-2xl">
               Discover our complete collection of quality products
-            </p>
+            </p> */}
           </div>
           
           {/* Cart Button - Shows item count */}
